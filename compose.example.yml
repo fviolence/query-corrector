@@ -1,0 +1,52 @@
+services:
+  languagetool:
+    image: docker.io/erikvl87/languagetool:6.8
+    container_name: searxng-languagetool
+    restart: unless-stopped
+    # Re-check these restrictions when changing the image or its configuration.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      Java_Xms: "128m"
+      Java_Xmx: "768m"
+    expose:
+      - "8010"
+
+  query-corrector:
+    image: docker.io/fviolence/searxng-query-corrector:latest
+    container_name: searxng-query-corrector
+    depends_on:
+      - languagetool
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      LANGUAGETOOL_URL: "http://languagetool:8010"
+      LANGUAGETOOL_TIMEOUT: "0.8"
+      LOG_LEVEL: "WARNING"
+      DEFAULT_LANGUAGE: "auto"
+      PREFERRED_VARIANTS: "en-US,de-DE,pt-PT"
+      LANGUAGE_VARIANTS: "en:en-US,de:de-DE,pt:pt-PT"
+      MAX_EDITS: "2"
+      MAX_TOKEN_EDIT_DISTANCE: "2"
+      # Add instance-specific technical terms here:
+      IGNORED_WORDS: "searxng"
+    expose:
+      - "8000"
+
+  searxng:
+    image: docker.io/fviolence/searxng-custom:latest
+    container_name: searxng
+    depends_on:
+      - query-corrector
+    # ...merge the rest of your existing SearXNG service here.
